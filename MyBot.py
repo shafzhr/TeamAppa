@@ -96,34 +96,34 @@ def all_groups_to_dest(game, dest):
             sum += x.penguin_amount
     return sum
 
-# def all_groups_to_dest_minus_distances(game, dest):
-#     """
-#     :type game: Game
-#     :type dest: Iceberg
-#     """
-#     groups_per_distance = {}
-#     for enemy_group in game.get_enemy_penguin_groups():
-#         if enemy_group.destination == dest:
-#             if enemy_group.turns_till_arrival in groups_per_distance.keys():
-#                 groups_per_distance[enemy_group.turns_till_arrival] += enemy_group.penguin_amount
-#             else:  
-#                 groups_per_distance[enemy_group.turns_till_arrival] = enemy_group.penguin_amount
-#     if len(groups_per_distance.keys()) == 0:
-#         return dest.penguin_amount
-#     balance = dest.penguin_amount + dest.level*max(groups_per_distance.keys())
-#     for key, value in groups_per_distance.iteritems():
-#         balance -= value
-#     return balance
+def all_groups_to_dest_minus_distances(game, dest):
+    """
+    :type game: Game
+    :type dest: Iceberg
+    """
+    groups_per_distance = {}
+    for enemy_group in game.get_enemy_penguin_groups():
+        if enemy_group.destination == dest:
+            if enemy_group.turns_till_arrival in groups_per_distance.keys():
+                groups_per_distance[enemy_group.turns_till_arrival] += enemy_group.penguin_amount
+            else:  
+                groups_per_distance[enemy_group.turns_till_arrival] = enemy_group.penguin_amount
+    if len(groups_per_distance.keys()) == 0:
+        return dest.penguin_amount
+    balance = dest.penguin_amount + dest.level*max(groups_per_distance.keys())
+    for key, value in groups_per_distance.iteritems():
+        balance -= value
+    return balance
 
 
 
 def can_attack(game, our_iceberg, enemy_iceberg, additional = 0, is_not_neutral = 1):
     
-    # after_attacked_balance = all_groups_to_dest_minus_distances(game, our_iceberg)
-    # if after_attacked_balance <= 0:
-    #     return False
-    # can_take = after_attacked_balance + additional > enemy_iceberg.penguin_amount + our_iceberg.get_turns_till_arrival(enemy_iceberg) * is_not_neutral * enemy_iceberg.level
-    can_take = use_peng(game, our_iceberg) + additional > enemy_iceberg.penguin_amount + our_iceberg.get_turns_till_arrival(enemy_iceberg) * is_not_neutral * enemy_iceberg.level
+    after_attacked_balance = all_groups_to_dest_minus_distances(game, our_iceberg)
+    if after_attacked_balance <= 0:
+        return False
+    can_take = after_attacked_balance + additional > enemy_iceberg.penguin_amount + our_iceberg.get_turns_till_arrival(enemy_iceberg) * is_not_neutral * enemy_iceberg.level
+    # can_take = use_peng(game, our_iceberg) + additional > enemy_iceberg.penguin_amount + our_iceberg.get_turns_till_arrival(enemy_iceberg) * is_not_neutral * enemy_iceberg.level
     
     for group in game.get_my_penguin_groups():
         if group.destination == enemy_iceberg:
@@ -253,11 +253,13 @@ def enemy_target(game):
             for base in game.get_my_icebergs():
                 if base.get_turns_till_arrival(group.destination) < nearest_base.get_turns_till_arrival(group.destination):
                     nearest_base = base
-            if nearest_base.get_turns_till_arrival(group.destination) < group.turns_till_arrival:
+            if nearest_base.get_turns_till_arrival(group.destination) > group.turns_till_arrival:
                 if use_peng(game, nearest_base) >= our_abs(all_groups_to_dest(game, group.destination)-group.destination.penguin_amount) + nearest_base.get_turns_till_arrival(group.destination):
                     if nearest_base.can_send_penguins(group.destination, our_abs(all_groups_to_dest(game, group.destination)-group.destination.penguin_amount) + nearest_base.get_turns_till_arrival(group.destination)):
                         smart_send(nearest_base, group.destination, our_abs(all_groups_to_dest(game, group.destination)-group.destination.penguin_amount) + nearest_base.get_turns_till_arrival(group.destination))
                         print "DA-VI --> " + str(our_abs(all_groups_to_dest(game, group.destination)-group.destination.penguin_amount) + nearest_base.get_turns_till_arrival(group.destination)) + " penguin_amount = "+ str(nearest_base.penguin_amount)
+                        print "DA-VI2  --> " + str(our_abs(all_groups_to_dest(game, group.destination)-group.destination.penguin_amount)) + " " + str(nearest_base.get_turns_till_arrival(group.destination))
+                        print "DA-VI3 --> " + str(nearest_base.get_turns_till_arrival(group.destination)) + "     " + str(group.turns_till_arrival)
 
 
 def use_peng(game,iceberg):
