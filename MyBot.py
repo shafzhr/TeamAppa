@@ -1,4 +1,4 @@
-from penguin_game import *
+from penguin_game import * # pylint: disable=F0401
 import math
 
 
@@ -270,7 +270,54 @@ def use_peng(game,iceberg):
             sum += x.penguin_amount
     return iceberg.penguin_amount - sum - 2
 
+
+def nearest_enemy_penguin_group_distance(game, iceberg):
+    """
+    :type game: Game
+    :type iceberg: Iceberg
+    """
+    enemy_groups = game.get_enemy_penguin_groups()
+    if enemy_groups == []:
+        return -1
+    
+    nearest_distance = enemy_groups[0].turns_till_arrival
+    for group in enemy_groups:
+        if group.destination == iceberg and group.turns_till_arrival < nearest_distance:
+            nearest_distance = group.turns_till_arrival
+    return nearest_distance
+
+
+
+
+def defend(game, to_defend):
+    """
+    :type game: Game
+    :type to_defend: Iceberg
+    """
+    global icebergs_balance
+    need_help = { iceberg: [] for iceberg in game.get_my_icebergs() if icebergs_balance[iceberg] <= 0 }
+    helps_icebergs = {}
+    for need_help_iceberg, possible_helps in need_help.iteritems():
+        nearest_group_distance = nearest_enemy_penguin_group_distance(game, need_help_iceberg)
+        for iceberg in game.get_my_icebergs():
+            if iceberg.get_turns_till_arrival(need_help_iceberg) <= nearest_group_distance:
+                possible_helps.append(iceberg)
+                if iceberg in helps_icebergs.keys():
+                    helps_icebergs[iceberg] += 1
+                else:
+                    helps_icebergs[iceberg] = 1
+    #TODO: take every least-used helper for each iceberg in need_help as helper
+
+    
+
+
+
+
+
 icebergs_state = {}
+icebergs_balance = {}
+state = 1 # 1 = attack, 0 = defend
+
 def do_turn(game):
     """
     Makes the bot run a single turn.
@@ -279,7 +326,10 @@ def do_turn(game):
     :type game: Game
     """
     global icebergs_state
+    global icebergs_balance
+
     icebergs_state = { iceberg: True for iceberg in game.get_my_icebergs() }
+    icebergs_balance = { iceberg: all_groups_to_dest_minus_distances(game, iceberg) for iceberg in game.get_my_icebergs() }
 
     base = game.get_my_icebergs()[0]
     if base.level == 1:
