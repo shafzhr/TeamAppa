@@ -199,6 +199,8 @@ def ko(game, base):
     :type game: Game
     :type base: Iceberg
     """
+    global icebergs_balance
+
     icebergs = game.get_enemy_icebergs()
     ices = [icebergs[0]]
     for ice in icebergs:
@@ -215,10 +217,12 @@ def ko(game, base):
     sum = 0
     farest_iceberg = game.get_my_icebergs()[0]
     for iceberg in game.get_my_icebergs():
-        sum += use_peng(game, iceberg)
+        balance = icebergs_balance[iceberg]
+        if balance > 0:
+            sum += balance
         if iceberg.get_turns_till_arrival(ice1) > farest_iceberg.get_turns_till_arrival(ice1):
             farest_iceberg = iceberg
-    sum = sum - farest_iceberg.get_turns_till_arrival(ice1)
+    # sum = sum - farest_iceberg.get_turns_till_arrival(ice1)
     for fire in game.get_my_icebergs():
         if fire.can_send_penguins(ice1, use_peng(game,fire)) and sum > ice1.penguin_amount + ice1.level*farest_iceberg.get_turns_till_arrival(ice1):
             smart_send(fire, ice1,use_peng(game,fire))
@@ -230,9 +234,12 @@ def smart_send(src, dest, p_amount):
     :type dest: Iceberg
     """
     global icebergs_state
+    global icebergs_balance
+
     icebergs_state[src] = False
     if p_amount > 0:
         src.send_penguins(dest, p_amount)
+        icebergs_balance[src] -= p_amount
 
     
 def enemy_target(game):
