@@ -370,40 +370,114 @@ def nearest_enemy_penguin_group_distance(game, iceberg):
 
 
 
+# def defend1(game):
+#     """
+#     :type game: Game
+#     """
+#     global icebergs_balance
+#     need_help = [ iceberg for iceberg in game.get_my_icebergs() if icebergs_balance[iceberg] <= 0 ]
+#     helps_icebergs = [ iceberg for iceberg in game.get_my_icebergs() if icebergs_balance[iceberg] > 0 ]
+#     for iceberg in game.get_my_icebergs():
+#         print("Amount = " + str(iceberg.penguin_amount) + " Balance = " + str(icebergs_balance[iceberg]))
+#     our_icebergs_prioritized = sorted(need_help, key= lambda x: x.level, reverse= True)
+#     for help_iceberg in our_icebergs_prioritized:
+#         nearest_group_distance = nearest_enemy_penguin_group_distance(game, help_iceberg)
+#         needed_amount = our_abs(icebergs_balance[help_iceberg]) + 1
+#         for helper in helps_icebergs:
+#             if helper.get_turns_till_arrival(help_iceberg) <= nearest_group_distance:
+#                 if icebergs_balance[helper] >= needed_amount:
+#                     if helper.can_send_penguins(help_iceberg, needed_amount):
+#                         smart_send(helper, help_iceberg, needed_amount)
+#                         icebergs_balance = { iceberg: all_groups_to_dest_minus_distances(game, iceberg) for iceberg in game.get_my_icebergs() }
+#                         print("sent ==> " + str(needed_amount))
+#                         needed_amount = 0
+#                         break
+
 def defend(game):
     """
     :type game: Game
     """
     global icebergs_balance
-    need_help = [ iceberg for iceberg in game.get_my_icebergs() if icebergs_balance[iceberg] <= 0 ]
-    helps_icebergs = [ iceberg for iceberg in game.get_my_icebergs() if icebergs_balance[iceberg] > 0 ]
-    for iceberg in game.get_my_icebergs():
-        print("Amount = " + str(iceberg.penguin_amount) + " Balance = " + str(icebergs_balance[iceberg]))
-    our_icebergs_prioritized = sorted(need_help, key= lambda x: x.level, reverse= True)
-    for help_iceberg in our_icebergs_prioritized:
-        nearest_group_distance = nearest_enemy_penguin_group_distance(game, help_iceberg)
-        needed_amount = our_abs(icebergs_balance[help_iceberg]) + 1
-        for helper in helps_icebergs:
-            if helper.get_turns_till_arrival(help_iceberg) <= nearest_group_distance:
-                if icebergs_balance[helper] >= needed_amount:
-                    if helper.can_send_penguins(help_iceberg, needed_amount):
-                        smart_send(helper, help_iceberg, needed_amount)
-                        icebergs_balance = { iceberg: all_groups_to_dest_minus_distances(game, iceberg) for iceberg in game.get_my_icebergs() }
-                        print("sent ==> " + str(needed_amount))
-                        needed_amount = 0
-                        break
+    need_help = { iceberg: [] for iceberg in game.get_my_icebergs() if icebergs_balance[iceberg] <= 0 } # { need_help_iceberg: [possible_helpers] }
+    helps_icebergs = {iceberg: (0, []) for iceberg in game.get_my_icebergs() if iceberg not in need_help.keys()} # { helper_iceberg: (amount_of_need_help, [icebergs that need the helper]) }
+    for need_help_iceberg, possible_helps in need_help.iteritems():
+        nearest_group_distance = nearest_enemy_penguin_group_distance(game, need_help_iceberg)
+        for iceberg in game.get_my_icebergs():
+            if iceberg.get_turns_till_arrival(need_help_iceberg) <= nearest_group_distance and icebergs_balance[iceberg] > 0:
+                possible_helps.append(iceberg)
+                if iceberg in helps_icebergs.keys():
+                    helps_icebergs[iceberg] = (helps_icebergs[iceberg][0] + 1, helps_icebergs[iceberg][1])              
+                else:
+                    helps_icebergs[iceberg] = (1, helps_icebergs[iceberg][1])              
+                helps_icebergs[iceberg][1].append(need_help_iceberg)
+    
+    #TODO: take every least-used helper for each iceberg in need_help as helper
+    our_icebergs_prioritized = sorted(need_help.keys(), key= lambda x: x.level, reverse= True)
+    defenders_devision = {iceberg: [] for iceberg in our_icebergs_prioritized}
+    if len(need_help.keys()) == 0:
+        return
+    max_defenders = len(helps_icebergs.keys()) / len(need_help.keys())
+    if max_defenders == 0:
+        max_defenders = 1
+    for iceberg in our_icebergs_prioritized:
+        if len(defenders_devision[iceberg]) > max_defenders:
+            break
+        possible_helps =  need_help[iceberg]
+        for helper in possible_helps:
+            if helper in helps_icebergs.keys():
+                defenders_devision[iceberg].append(helper)
+                del helps_icebergs[helper]
+    print defenders_devision
+    for iceberg, defenders in defenders_devision.iteritems():
+        defenders = sorted(defenders, key= lambda x: x.level)
+        defenders_needed = 0
+        sum = 0
+        for defender in defenders:
+            defenders_needed += 1
+            sum += icebergs_balance[defender]
+            if sum > our_abs(icebergs_balance[iceberg]):
+                break
+        if sum > icebergs_balance[iceberg]:
+            amount_per_defender = split_amount_for_send(iceberg, defenders, icebergs_balance[iceberg] + 1, game)
+            for defender, amount in amount_per_defender.iteritems():
+                smart_send(defender, iceberg, amount)
+        else:
+            print "Gave up"
+                #     amount_needed = our_abs(icebergs_balance[iceberg]) + 1
+                #     if icebergs_balance[helper] >= amount_needed:
+                #         if helper.can_send_penguins(iceberg, amount_needed):
+                #             smart_send(helper, iceberg, amount_needed)
+                #     else:
+                #         most_important = 0
+                #         for ice_need_help in helps_icebergs[helper][1]:
+                #             pass
+                #     #TODO: defend (no prioritization (only 1 helper) needed)
+                #     # set the balances after defending
+                #     pass
+                # elif helps_icebergs[helper][0] > 1:
+                #     #TODO: defend by prioritization
+                #     # set the balances
+                #     pass
+                # else:
+                #     game.debug("BUG!!! helps_icebergs[helper][0] cannot be less than 1")
+ 
 
 
 
-def split_amount_for_send(iceberg_to_send, icebergs, amount):
+def split_amount_for_send(iceberg_to_send, icebergs, amount, game):
     """
     iceberg_to_send: target ICEBERG
     icebergs: LIST of icebergs to send from
     amount: int, total amount to be sent
+    type game: Game
     
     returns a dictionary. for each iceberg in icebergs returns how much to send.
     """
-    amount_by_iceberg = {iceberg: (use_peng(game, iceberg), amount/use_peng(game, iceberg)) for iceberg in icebergs}
+    sum_balance = 0
+    for sender in icebergs:
+        sum_balance += all_groups_to_dest_minus_distances(game, sender)
+    
+    amount_by_iceberg = {iceberg: (all_groups_to_dest_minus_distances(game, iceberg), all_groups_to_dest_minus_distances(game, iceberg) / sum_balance) for iceberg in icebergs}
     to_send_by_iceberg = {iceberg: 0 for iceberg in icebergs}
     # amount_by_iceberg: second value in tuple is ratio between amount and sendable penguin amount for iceberg. 
     sum = 0 
@@ -414,7 +488,7 @@ def split_amount_for_send(iceberg_to_send, icebergs, amount):
         return None
     else:
         for iceberg in icebergs:
-            to_send_by_iceberg[iceberg] = math.floor(amount_by_iceberg[iceberg][1] * amount)
+            to_send_by_iceberg[iceberg] = int(amount_by_iceberg[iceberg][1] * amount)
             to_be_sent += to_send_by_iceberg[iceberg]
         for iceberg in icebergs:
             if to_be_sent >= amount:
