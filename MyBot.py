@@ -478,6 +478,7 @@ def do_turn(game):
     global turns_no_attacks_streak
     icebergs_state = { iceberg: True for iceberg in game.get_my_icebergs() }
     icebergs_balance = { iceberg: all_groups_to_dest_minus_distances(game, iceberg) for iceberg in game.get_my_icebergs() }
+    enemy_balance = { iceberg: get_enemy_balance_iceberg(game, iceberg) for iceberg in game.get_enemy_icebergs()}
     base = game.get_my_icebergs()[0]
 
     if game.get_all_penguin_groups() == []:
