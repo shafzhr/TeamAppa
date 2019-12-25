@@ -464,6 +464,7 @@ def old_ko(game, base):
 
 icebergs_state = {}
 icebergs_balance = {}
+enemy_balance = {}
 state = 1 # 1 = attack, 0 = defend
 turns_no_attacks_streak = 0
 def do_turn(game):
@@ -476,6 +477,7 @@ def do_turn(game):
     global icebergs_state
     global icebergs_balance
     global turns_no_attacks_streak
+    global enemy_balance
     icebergs_state = { iceberg: True for iceberg in game.get_my_icebergs() }
     icebergs_balance = { iceberg: all_groups_to_dest_minus_distances(game, iceberg) for iceberg in game.get_my_icebergs() }
     enemy_balance = { iceberg: get_enemy_balance_iceberg(game, iceberg) for iceberg in game.get_enemy_icebergs()}
