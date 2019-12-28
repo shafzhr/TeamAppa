@@ -338,10 +338,10 @@ def smart_send(src, dest, p_amount):
 
     if not icebergs_state[src]:
         return
-    icebergs_state[src] = False
     if p_amount > 0:
         src.send_penguins(dest, p_amount)
         icebergs_balance[src] -= p_amount
+        icebergs_state[src] = False
     else:
         print "Cant send negative!!!!!"
 
