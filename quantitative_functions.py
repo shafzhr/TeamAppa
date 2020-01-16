@@ -6,10 +6,5 @@ class QuantitativeFunctions(object):
         """
         :type game: Game
         """
-        self.ices_by_player = { player : None for player in ‎get_all_players() }
-        for player, ices in self.ices_by_player.iteritems():
-            ices = list(filter(lambda ice: ice.owner == player, game.‎get_all_icebergs()))
-        
-        self.p_groups_by_player = { player : [] for player in ‎‎get_all_players() }
-        for player, p_groups in self.p_groups_by_player.iteritems():
-            p_groups = list(filter(lambda group: group.owner == player, get_all_penguin_groups()))
+        self.ices_by_player = [ game.‎get_my_icebergs(), game.‎get_enemy_icebergs() ]        
+        self.p_groups_by_player = [ game.get_my_penguin_groups(), ‎get_enemy_penguin_groups() ]
