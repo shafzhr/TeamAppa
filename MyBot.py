@@ -892,7 +892,7 @@ def do_turn(game):
                 if iceberg.can_upgrade():
                     if icebergs_state[iceberg]:
                         iceberg.upgrade()
-        
+                
 
 
 
