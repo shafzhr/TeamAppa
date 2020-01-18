@@ -99,7 +99,7 @@ class QuantitativeFunctions(object):
     
     def __sort_by_distance_from_iceberg(self, iceberg, icebergs_list):
         """
-        returns sorted list of 
+        returns sorted list of icebergs by their distances from iceberg
         """
         return sorted(icebergs_list, key=lambda x: x.get_turns_till_arrival(iceberg))
     
