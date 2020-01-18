@@ -13,9 +13,9 @@ class QuantitativeFunctions(object):
         self.ices_by_player = [ game.get_my_icebergs(), game.get_enemy_icebergs() ]        
         self.p_groups_by_player = [ game.get_my_penguin_groups(), game.get_enemy_penguin_groups() ]
         self.players_index = { game.get_myself(): 0, game.get_enemy(): 1 }
+
         
-    
-    def __get_players_indexes(self):
+    def __get_players_indexes(self, player):
         """
         Returns the indexes of the players (given player, opposite) that are used in the properties for the lists
         ~0 == -1
@@ -76,8 +76,31 @@ class QuantitativeFunctions(object):
         """
         :type dest: Iceberg
         """
-        a = dest
         return [ send for send in self.p_groups_by_player[~self.players_index[self.player]] if send.destination == dest]
 
 
+    def get_nearest_opposite_penguin_group(self, iceberg):
+        """
+        returns the nearest opposite penguin group to a given player
+        :type iceberg: Iceberg
+        """
+        opposite_penguin_groups = sorted(self.get_opposite_sends_on_iceberg(iceberg), key=lambda x:x.turns_till_arrival)
+        return opposite_penguin_groups[0] if len(opposite_penguin_groups) > 0 else None
+    
+
+    def get_nearest_neutral_iceberg(self, iceberg):
+        """
+        returns the nearest neutral iceberg
+        :type iceberg: Iceberg
+        """
+        #the list is already sorted:
+        neutral_icebergs = self.__sort_by_distance_from_iceberg(iceberg, self.game.get_neutral_icebergs())
+        return neutral_icebergs[0] if len(neutral_icebergs) > 0 else None
+
+    
+    def __sort_by_distance_from_iceberg(self, iceberg, icebergs_list):
+        """
+        returns sorted list of 
+        """
+        return sorted(icebergs_list, key=lambda x: x.get_turns_till_arrival(iceberg))
     
