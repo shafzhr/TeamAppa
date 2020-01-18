@@ -1,4 +1,4 @@
-from penguin_game import *
+from penguin_game import * # pylint: disable=F0401
 
 
 class QuantitativeFunctions(object):
@@ -15,7 +15,7 @@ class QuantitativeFunctions(object):
         self.players_index = { game.get_myself(): 0, game.get_enemy(): 1 }
 
         
-    def __get_players_indexes(self, player):
+    def __get_players_indexes(self):
         """
         Returns the indexes of the players (given player, opposite) that are used in the properties for the lists
         ~0 == -1
@@ -81,7 +81,7 @@ class QuantitativeFunctions(object):
 
     def get_nearest_opposite_penguin_group(self, iceberg):
         """
-        returns the nearest opposite penguin group to a given player
+        returns the nearest opposite penguin group to a given iceberg
         :type iceberg: Iceberg
         """
         opposite_penguin_groups = sorted(self.get_opposite_sends_on_iceberg(iceberg), key=lambda x:x.turns_till_arrival)
