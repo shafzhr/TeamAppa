@@ -85,7 +85,7 @@ class QuantitativeFunctions(object):
         :type iceberg: Iceberg
         """
         opposite_penguin_groups = sorted(self.get_opposite_sends_on_iceberg(iceberg), key=lambda x:x.turns_till_arrival)
-        return opposite_penguin_groups[0] if len(opposite_penguin_groups) > 0 else None
+        return opposite_penguin_groups[0] if opposite_penguin_groups else None
     
 
     def get_nearest_neutral_iceberg(self, iceberg):
@@ -93,9 +93,8 @@ class QuantitativeFunctions(object):
         returns the nearest neutral iceberg
         :type iceberg: Iceberg
         """
-        #the list is already sorted:
         neutral_icebergs = self.__sort_by_distance_from_iceberg(iceberg, self.game.get_neutral_icebergs())
-        return neutral_icebergs[0] if len(neutral_icebergs) > 0 else None
+        return neutral_icebergs[0] if neutral_icebergs else None
 
     
     def __sort_by_distance_from_iceberg(self, iceberg, icebergs_list):
