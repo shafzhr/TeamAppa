@@ -45,7 +45,7 @@ class QuantitativeFunctions(object):
                     groups_per_distance[eny_group.turns_till_arrival] += eny_group.penguin_amount
                 else:
                     groups_per_distance[eny_group.turns_till_arrival] = eny_group.penguin_amount
-        if len(groups_per_distance.keys()) == 0:
+        if not groups_per_distance.keys():
             return dest.penguin_amount
         
         min_balance = dest.penguin_amount
