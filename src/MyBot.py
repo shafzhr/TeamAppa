@@ -21,6 +21,7 @@ def neutral_icebergs_distances(game, my_iceberg):
         neutral_icebergs.remove(min_iceberg)
     return sorted_neutral_icebergs
 
+
 def neutral_nearest_iceberg(game, my_iceberg):
     """
     :type game: Game
@@ -38,8 +39,6 @@ def neutral_nearest_iceberg(game, my_iceberg):
     return None
 
 
-
-
 def enemy_get_dangered_icebergs(game, p_amount = 35, danger_range = 20):
     """
     ...
@@ -55,11 +54,6 @@ def enemy_get_dangered_icebergs(game, p_amount = 35, danger_range = 20):
                 enemy_dangered_icebergs.append((our_iceberg, enemy_iceberg))
 
     return enemy_dangered_icebergs
-
-# def ultimate_attack(game,base):
-#     attack = enemy_icebergs_distances(game, base)
-#     if can_attack(game,base,attack):
-#         base.send_penguins(attack, get_send_to_attack(game,base,attack))
 
 
 def enemy_priority(game):
@@ -179,6 +173,16 @@ def neutral_get_send_to_attack(game, our_iceberg, enemy_iceberg):
     """
     return enemy_iceberg.penguin_amount + 1
 
+
+def upgrade_val(game, iceberg):
+    if iceberg.level == iceberg.upgrade_level_limit:
+        return 0
+    cost_eff = 1.0/iceberg.upgrade_cost*1.0 / iceberg.upgrade_value
+    final_val = (iceberg.penguin_amount*1.0/iceberg.upgrade_cost)*(iceberg.penguins_per_turn + iceberg.upgrade_value)*cost_eff*1.0
+    print ("UPGRADE VAL: " + str(final_val))
+    return final_val
+
+
 def enemy_icebergs_distances(game, my_iceberg):
     """
     :params game: The current game state
@@ -224,6 +228,7 @@ def our_icebergs_distances(game, my_iceberg):
         return []
     return sorted_our_icebergs[0]
 
+
 def our_abs(n):
     if n == 0:
         return 0
@@ -231,7 +236,8 @@ def our_abs(n):
         return n
     else:
         return n*(-1)
-    
+
+
 def get_enemy_balance_iceberg(game, dest):
     """
     :type game: game
@@ -275,31 +281,23 @@ def ko(game, base):
     :type base: Iceberg
     """
     global icebergs_balance
+    global icebergs_state
 
-    icebergs = game.get_enemy_icebergs()
-    ices = [icebergs[0]]
-    for ice in icebergs:
-        if ice.level == ices[0].level:
-            ices.append(ice)
-        if ice.level > ices[0].level:
-            ices = [ice]
-    target = ices[0]
-    
     target = sorted( game.get_enemy_icebergs(), key= lambda ice: ice.get_turns_till_arrival(base) )[0]
 
-    for x in ices:
-        if x.get_turns_till_arrival(base) < target.get_turns_till_arrival(base):
-            target = x
-    
     ice1 = target
     to_send_from = []
     our_sum = 0
     enemy_sum = 0
     for turn in range(1, 30):
         for our_ice in game.get_my_icebergs():
+            if not icebergs_state[our_ice]: # !!!
+                continue
             if our_ice.get_turns_till_arrival(ice1) == turn:
-                our_sum += icebergs_balance[our_ice]
-                to_send_from.append(our_ice)
+                our_sends_sum = sum( [ send.penguin_amount for send in get_our_sends_on_iceberg(game, our_ice) ] )
+                if icebergs_balance[our_ice] - our_sends_sum > 0:
+                    our_sum += icebergs_balance[our_ice] - our_sends_sum
+                    to_send_from.append(our_ice)
         for eny_ice in game.get_enemy_icebergs():
             if eny_ice.get_turns_till_arrival(ice1) == turn:
                 enemy_sum += eny_ice.penguin_amount
@@ -309,22 +307,6 @@ def ko(game, base):
                 if sender.can_send_penguins(ice1, icebergs_balance[sender] - our_sends_sum):
                     smart_send(sender, ice1,icebergs_balance[sender] - our_sends_sum)
                     print "koing . . ."
-                
-
-    # sum = 0
-    # farest_iceberg = game.get_my_icebergs()[0]
-    # for iceberg in game.get_my_icebergs():
-    #     balance = icebergs_balance[iceberg]
-    #     # balance = use_peng(game, iceberg)
-    #     if balance > 0:
-    #         sum += balance
-    #     if iceberg.get_turns_till_arrival(ice1) > farest_iceberg.get_turns_till_arrival(ice1):
-    #         farest_iceberg = iceberg
-    # # sum = sum - farest_iceberg.get_turns_till_arrival(ice1)
-    # for fire in game.get_my_icebergs():
-    #     if fire.can_send_penguins(ice1, icebergs_balance[fire]) and sum > ice1.penguin_amount + ice1.level*farest_iceberg.get_turns_till_arrival(ice1):
-    #         smart_send(fire, ice1,icebergs_balance[fire])
-
 
 
 def smart_send(src, dest, p_amount):
@@ -336,15 +318,15 @@ def smart_send(src, dest, p_amount):
     global icebergs_state
     global icebergs_balance
 
+    # if not icebergs_state[src]:
+    #     return
     if not icebergs_state[src]:
         return
     if p_amount > 0:
         src.send_penguins(dest, p_amount)
         icebergs_balance[src] -= p_amount
-        icebergs_state[src] = False
     else:
         print "Cant send negative!!!!!"
-
 
     
 def enemy_target(game):
@@ -352,14 +334,6 @@ def enemy_target(game):
     :type game: Game
     """
     global icebergs_balance
-    # our_attacked = our_attacked_icebergs(game)
-
-    # for attacked in our_attacked:
-    #     defense = our_icebergs_distances(game, attacked)
-    #     if defense != []:
-    #         if defense.can_send_penguins(attacked, icebergs_balance[defense]):
-    #             smart_send(defense, attacked, icebergs_balance[defense])
-
     for group in game.get_enemy_penguin_groups():
         if group.destination in game.get_neutral_icebergs():
             nearest_base = game.get_my_icebergs()[0]
@@ -400,31 +374,6 @@ def nearest_enemy_penguin_group_distance(game, iceberg):
     return nearest_distance
 
 
-
-
-# def defend1(game):
-#     """
-#     :type game: Game
-#     """
-#     global icebergs_balance
-#     need_help = [ iceberg for iceberg in game.get_my_icebergs() if icebergs_balance[iceberg] <= 0 ]
-#     helps_icebergs = [ iceberg for iceberg in game.get_my_icebergs() if icebergs_balance[iceberg] > 0 ]
-#     for iceberg in game.get_my_icebergs():
-#         print("Amount = " + str(iceberg.penguin_amount) + " Balance = " + str(icebergs_balance[iceberg]))
-#     our_icebergs_prioritized = sorted(need_help, key= lambda x: x.level, reverse= True)
-#     for help_iceberg in our_icebergs_prioritized:
-#         nearest_group_distance = nearest_enemy_penguin_group_distance(game, help_iceberg)
-#         needed_amount = our_abs(icebergs_balance[help_iceberg]) + 1
-#         for helper in helps_icebergs:
-#             if helper.get_turns_till_arrival(help_iceberg) <= nearest_group_distance:
-#                 if icebergs_balance[helper] >= needed_amount:
-#                     if helper.can_send_penguins(help_iceberg, needed_amount):
-#                         smart_send(helper, help_iceberg, needed_amount)
-#                         icebergs_balance = { iceberg: all_groups_to_dest_minus_distances(game, iceberg) for iceberg in game.get_my_icebergs() }
-#                         print("sent ==> " + str(needed_amount))
-#                         needed_amount = 0
-#                         break
-
 def penguin_amount_in_n_turns(game, iceberg, n):
     level = iceberg.level
     penguin_sum = iceberg.penguin_amount + level * n
@@ -437,6 +386,14 @@ def penguin_amount_in_n_turns(game, iceberg, n):
     return penguin_sum
 
 
+def get_turns_to_help(game, iceberg):
+    sends = [send.turns_till_arrival for send in get_enemy_sends_on_iceberg(game, iceberg)]
+    for i in range(max(sends)+1):
+        if penguin_amount_in_n_turns(game, iceberg, i) <= 0:
+            return i
+    return 0
+
+
 def defend(game):
     """
     :type game: Game
@@ -447,7 +404,8 @@ def defend(game):
     for need_help_iceberg, possible_helps in need_help.iteritems():
         nearest_group_distance = nearest_enemy_penguin_group_distance(game, need_help_iceberg)
         for iceberg in game.get_my_icebergs():
-            if penguin_amount_in_n_turns(game, need_help_iceberg, iceberg.get_turns_till_arrival(iceberg)) > 0 and icebergs_balance[iceberg] > 0:
+            if penguin_amount_in_n_turns(game, need_help_iceberg, iceberg.get_turns_till_arrival(iceberg)) > 0 and icebergs_balance[iceberg] > 0 \
+            and iceberg.get_turns_till_arrival(need_help_iceberg) <= get_turns_to_help(game, need_help_iceberg) :
                 print("iceberg amount: {0}, balance: {1}".format(iceberg.penguin_amount, icebergs_balance[iceberg]))
                 possible_helps.append(iceberg)
                 if iceberg in helps_icebergs.keys():
@@ -474,7 +432,7 @@ def defend(game):
                 del helps_icebergs[helper]
     print defenders_devision
     for iceberg, defenders in defenders_devision.iteritems():
-        defenders = sorted(defenders, key= lambda x: x.level, reverse=True)
+        defenders = sorted(defenders, key= lambda x: x.level, reverse=False)
         
         already_done = False
         for defender in defenders:
@@ -501,26 +459,7 @@ def defend(game):
                 print "Defending!/?????????????????????????????????"
                 print "Defenders: " + str(len(defenders)) + "--------------------_"
             else:
-                print "Gave up----------------------------------"
-                    #     amount_needed = our_abs(icebergs_balance[iceberg]) + 1
-                    #     if icebergs_balance[helper] >= amount_needed:
-                    #         if helper.can_send_penguins(iceberg, amount_needed):
-                    #             smart_send(helper, iceberg, amount_needed)
-                    #     else:
-                    #         most_important = 0
-                    #         for ice_need_help in helps_icebergs[helper][1]:
-                    #             pass
-                    #     #TODO: defend (no prioritization (only 1 helper) needed)
-                    #     # set the balances after defending
-                    #     pass
-                    # elif helps_icebergs[helper][0] > 1:
-                    #     #TODO: defend by prioritization
-                    #     # set the balances
-                    #     pass
-                    # else:
-                    #     game.debug("BUG!!! helps_icebergs[helper][0] cannot be less than 1")
-     
-     
+                print "Gave up----------------------------------"     
 
 
 def new_defend(game):
@@ -615,87 +554,20 @@ def old_ko(game, base):
             smart_send(fire, ice1, icebergs_balance[fire])
 
 
-def super_ko(game, base):
+def risk_heuristic(game, our_ice):
     """
-    Heavy attack with multiple icebergs
     :type game: Game
-    :type base: Iceberg
+    :type our_ice: Iceberg
     """
     global icebergs_balance
-
-    icebergs = game.get_enemy_icebergs()
-    ices = [icebergs[0]]
-    for ice in icebergs:
-        if ice.level == ices[0].level:
-            ices.append(ice)
-        if ice.level > ices[0].level:
-            ices = [ice]
-    target = ices[0]
-    for x in ices:
-        if x.get_turns_till_arrival(base) < target.get_turns_till_arrival(base):
-            target = x
-    
-    ice1 = target
-    to_send_from = []
-    our_sum = 0
-    enemy_sum = 0
-    for turn in range(1, 30):
-        icebergs_in = []
-        for our_ice in game.get_my_icebergs():
-            if our_ice.get_turns_till_arrival(ice1) == turn:
-                our_sum += icebergs_balance[our_ice]
-                to_send_from.append(our_ice)
-                icebergs_in.append(our_ice)
-        
-        farest_ice = icebergs_in[0]
-        for iceberg in icebergs_in:
-            if iceberg.get_turns_till_arrival(ice1) > farest_ice.get_turns_till_arrival(ice1):
-                farest_ice = iceberg
-
-        for eny_ice in game.get_enemy_icebergs():
-            if eny_ice.get_turns_till_arrival(ice1) == turn:
-                enemy_sum += eny_ice.penguin_amount
-
-        if our_sum > enemy_sum + ice1.penguin_amount + ice1.penguins_per_turn * turn and to_send_from != []:
-            if farest_ice.can_send_penguins(ice1, icebergs_balance[farest_ice]):
-                smart_send(farest_ice, ice1, icebergs_balance[farest_ice])
-            for sender in to_send_from:
-                if sender.can_send_penguins(ice1, icebergs_balance[sender]):
-                    smart_send(sender, ice1,icebergs_balance[sender])
-                    
-
-# def risk_heuristic(game, our_ice):
-#     """
-#     :type game: Game
-#     :type our_ice: Iceberg
-#     """
-#     risk = 0
-#     for eny_ice in game.get_enemy_icebergs():
-#         risk += eny_ice.get_turns_till_arrival(our_ice)*10
-#     risk -= our_ice.penguin_amount
-#     return risk
-
-
-# def handle_risks(game):
-#     """
-#     :type game: Game
-#     """
-#     global icebergs_balance
-#     icebergs_by_risk = sorted(game.get_my_icebergs(), key = lambda ice: risk_heuristic(game, ice), reverse=True)
-
-#     to_send, from_send = icebergs_by_risk[0], icebergs_by_risk[-1]
-#     send_amount = our_abs((to_send.penguin_amount + from_send.penguin_amount)/2 - to_send.penguin_amount)
-#     if from_send.can_send_penguins(to_send, send_amount) and icebergs_balance[from_send] - send_amount > 0:
-#         if risk_heuristic(game, icebergs_by_risk[0]) + 100 < risk_heuristic(game, icebergs_by_risk[-1]):
-#             smart_send(from_send, to_send, send_amount)
-
-
-    # for i in range(len(icebergs_by_risk)):
-    #     to_send, from_send = icebergs_by_risk[i], icebergs_by_risk[-(i+1)]
-    #     send_amount = our_abs((to_send.penguin_amount + from_send.penguin_amount)/2 - to_send.penguin_amount)
-    #     if from_send.can_send_penguins(to_send, send_amount) and icebergs_balance[from_send] - send_amount > 0:
-    #         smart_send(from_send, to_send, send_amount)
-
+    risk = 0
+    for eny_ice in game.get_enemy_icebergs():
+        risk += eny_ice.penguin_amount*1.0/eny_ice.get_turns_till_arrival(our_ice)*1.0
+    total = get_our_pengs(game)
+    if total <= 0:
+        return 0
+    risk = risk*1.0 * ((total - icebergs_balance[our_ice]*1.0) / total*1.0)
+    return risk
 
 
 def transfer_to_closest_to_target(game, target):
@@ -704,10 +576,19 @@ def transfer_to_closest_to_target(game, target):
     :type target: Iceberg
     """
     global icebergs_balance
-    nearest_to_target = game.get_my_icebergs()[0]
-    for our_ice in game.get_my_icebergs():
-        if our_ice.get_turns_till_arrival(target) < nearest_to_target.get_turns_till_arrival(target):
-            nearest_to_target = our_ice
+    # nearest_to_target = game.get_my_icebergs()[0]
+    # for our_ice in game.get_my_icebergs():
+    #     if our_ice.get_turns_till_arrival(target) < nearest_to_target.get_turns_till_arrival(target):
+    #         nearest_to_target = our_ice
+    nearest_to_target = sorted(game.get_my_icebergs(), key= lambda x: risk_heuristic(game, x), reverse=True)[0]
+    # if not all([ice.level == 4 for ice in game.get_my_icebergs()]):
+    #     our_min_level = min([ice.level for ice in game.get_my_icebergs()])
+    #     min_level_ices = list(filter(lambda x: x.level == our_min_level, game.get_my_icebergs()))
+    #     all_to_transfer = sorted(min_level_ices, key=lambda x: risk_heuristic(game, x), reverse=True)
+    #     for ice in all_to_transfer:
+    #         nearest_to_target = ice
+    #         if icebergs_balance[ice] > 0:
+    #             break
     if icebergs_balance[nearest_to_target] <= 0:
         return
 
@@ -717,65 +598,49 @@ def transfer_to_closest_to_target(game, target):
     senders_by_distance = sorted(iceberg_sendable.keys(), key= lambda ice: ice.get_turns_till_arrival(nearest_to_target))
 
     for iceberg, sendable in iceberg_sendable.iteritems():
-        if iceberg.level == 4 and iceberg.can_send_penguins(nearest_to_target, sendable):
+        if iceberg.level <= 4 and iceberg.can_send_penguins(nearest_to_target, sendable):
             smart_send(iceberg, nearest_to_target, sendable)
-    # for turn in range(1, senders_by_distance[-1].get_turns_till_arrival(nearest_to_target) +1):
-    #     to_send_sum = target.penguin_amount + target.penguins_per_turn * turn + nearest_to_target.get_turns_till_arrival(target)
-    #     to_send_sum -= (nearest_to_target.penguins_per_turn * turn + nearest_to_target.penguin_amount)
-    #     sendables_in_turn = 0
-    #     senders = []
-    #     for iceberg, sendable in iceberg_sendable.iteritems():
-    #         if iceberg.get_turns_till_arrival(nearest_to_target) <= turn:
-    #             sendables_in_turn += sendable
-    #             senders.append(iceberg)
-    #     if sendables_in_turn > to_send_sum:
-    #         for sender in senders:
-    #             if sender.can_send_penguins(nearest_to_target, iceberg_sendable[sender]):
-    #                 smart_send(sender, nearest_to_target, iceberg_sendable[sender])
-    #                 print "Trasfer from " + str(sender.penguin_amount) + " | To " + str(nearest_to_target.penguin_amount)
-    #         return
-
 
 
 def nearest_enemy_iceberg(game, dest):
-   """
-   type game: Game
-   type dest: Iceberg
-   """
-   enemy_icebergs = game.get_enemy_icebergs()
-   #sorting the list of the enemy icebergs by their distances from the given destination island.
-   enemy_icebergs = sorted(enemy_icebergs, key = lambda x: dest.get_turns_till_arrival(x))
-   #returns the closest one
-   return enemy_icebergs[0]
+  """
+  type game: Game
+  type dest: Iceberg
+  """
+  enemy_icebergs = game.get_enemy_icebergs()
+  #sorting the list of the enemy icebergs by their distances from the given destination island.
+  enemy_icebergs = sorted(enemy_icebergs, key = lambda x: dest.get_turns_till_arrival(x))
+  #returns the closest one
+  return enemy_icebergs[0]
 
 
 def max_tribute(game, target_iceberg):
-   """
-   Returns a dictionary of {tributers: max_tribute}
-   type game: Game
-   type target_iceberg: Iceberg
-   """
-   global icebergs_state
-   global icebergs_balance
-   our_icebergs = game.get_my_icebergs()
-   tributers = {}
-   #For each of our icebergs, checks whether they were used. If so, doesn't consider them as potential tributers.
-   for iceberg in our_icebergs:
-       if not icebergs_state[iceberg]:
-           our_icebergs.remove(iceberg)
-       else:
-           tributers[iceberg] = 0
-   #For each of the potential tributers, calculates the potential tribute. If it is positive, it changes the dictionary value, if not, it leaves it a 0.
-   #Calculation: potential_tribute = our_penguins + our_level * distance - nearest_enemy_penguins
-   for iceberg in tributers.keys():
-       nearest_enemy = nearest_enemy_iceberg(game, iceberg)
-       potential_tribute = icebergs_balance[iceberg] - nearest_enemy.penguin_amount
-       if potential_tribute > 0:
-           tributers[iceberg] = potential_tribute
-       else:
-           del tributers[iceberg]
+  """
+  Returns a dictionary of {tributers: max_tribute}
+  type game: Game
+  type target_iceberg: Iceberg
+  """
+  global icebergs_state
+  global icebergs_balance
+  our_icebergs = game.get_my_icebergs()
+  tributers = {}
+  #For each of our icebergs, checks whether they were used. If so, doesn't consider them as potential tributers.
+  for iceberg in our_icebergs:
+      if not icebergs_state[iceberg]:
+          our_icebergs.remove(iceberg)
+      else:
+          tributers[iceberg] = 0
+  #For each of the potential tributers, calculates the potential tribute. If it is positive, it changes the dictionary value, if not, it leaves it a 0.
+  #Calculation: potential_tribute = our_penguins + our_level * distance - nearest_enemy_penguins
+  for iceberg in tributers.keys():
+      nearest_enemy = nearest_enemy_iceberg(game, iceberg)
+      potential_tribute = icebergs_balance[iceberg] - nearest_enemy.penguin_amount
+      if potential_tribute > 0:
+          tributers[iceberg] = potential_tribute
+      else:
+          del tributers[iceberg]
  
-   return tributers
+  return tributers
 
 
 def get_neutral_to_take(game, base):
@@ -792,20 +657,22 @@ def get_neutral_to_take(game, base):
     
 
 def get_enemy_pengs(game):
-    return sum([ eny_ice.penguin_amount for eny_ice in game.get_enemy_icebergs() ]) + \
-        sum([ group.penguin_amount for group in game.get_enemy_penguin_groups() ])
+    global enemy_total_pengs
+    return enemy_total_pengs
+
 
 def get_our_pengs(game):
-    return sum([ ice.penguin_amount for ice in game.get_my_icebergs() ]) + \
-        sum([ group.penguin_amount for group in game.get_my_penguin_groups() ])
+    global our_total_pengs
+    return our_total_pengs
 
 
-ko_dict = {}
 icebergs_state = {}
 icebergs_balance = {}
 enemy_balance = {}
 state = 1 # 1 = attack, 0 = defend
 turns_no_attacks_streak = 0
+our_total_pengs = 0
+enemy_total_pengs = 0
 def do_turn(game):
     """
     Makes the bot run a single turn.
@@ -816,14 +683,18 @@ def do_turn(game):
     global icebergs_balance
     global turns_no_attacks_streak
     global enemy_balance
+    global our_total_pengs
+    global enemy_total_pengs
+    
+    our_total_pengs = sum([ ice.penguin_amount for ice in game.get_my_icebergs() ])
+    our_total_pengs += sum([ group.penguin_amount for group in game.get_my_penguin_groups() ])
+    enemy_total_pengs = sum([ eny_ice.penguin_amount for eny_ice in game.get_enemy_icebergs() ])
+    enemy_total_pengs +=sum([ group.penguin_amount for group in game.get_enemy_penguin_groups() ])
+    
     icebergs_state = { iceberg: True for iceberg in game.get_my_icebergs() }
     icebergs_balance = { iceberg: all_groups_to_dest_minus_distances(game, iceberg) for iceberg in game.get_my_icebergs() }
     enemy_balance = { iceberg: get_enemy_balance_iceberg(game, iceberg) for iceberg in game.get_enemy_icebergs() }
     
-    for group, value in ko_dict.iteritems():
-        if group.turns_till_arrival == 0:
-            ko_dict.pop(group, None)
-
     base = game.get_my_icebergs()[0]
 
     if game.get_all_penguin_groups() == []:
@@ -838,13 +709,24 @@ def do_turn(game):
         if base.can_upgrade():
             base.upgrade()
     else:
-        best_target = sorted(game.get_enemy_icebergs(), key= lambda ice: ice.level, reverse= True)[0]
+
         defend(game)
+        
+        # if sum([ice.penguins_per_turn for ice in game.get_my_icebergs()]) < sum([ice.penguins_per_turn for ice in game.get_enemy_icebergs()]):
+        # if get_our_pengs(game) > get_enemy_pengs(game) \
+        # and sum([ice.penguins_per_turn for ice in game.get_my_icebergs()]) < sum([ice.penguins_per_turn for ice in game.get_enemy_icebergs()]):
+        if get_our_pengs(game) > get_enemy_pengs(game):
+            upgrades = sorted([(ice, upgrade_val(game, ice)) for ice in game.get_my_icebergs()], key=lambda x: x[1])
+            to_upgrade = upgrades[-1][0]
+            if to_upgrade.can_upgrade() and not to_upgrade.already_acted and all_groups_to_dest_minus_distances(game, to_upgrade) > to_upgrade.upgrade_cost:
+                if not to_upgrade.already_acted:
+                    to_upgrade.upgrade()
+                    icebergs_state[to_upgrade] = False
         
         # transfer_to_closest_to_target(game, best_target)
         if len(game.get_neutral_icebergs()) != 0:
             enemy_target(game)
-        if len(game.get_my_icebergs()) < 3 and len(game.get_neutral_icebergs()) != 0:
+        if len(game.get_my_icebergs()) < 4 and len(game.get_neutral_icebergs()) != 0:
             # to_attack = neutral_nearest_iceberg(game, base)
             to_attack = get_neutral_to_take(game, base)
             if to_attack is not None:
@@ -852,13 +734,6 @@ def do_turn(game):
                     if neutral_get_send_to_attack(game, base, to_attack)+0 <= icebergs_balance[base]:
                         smart_send(base, to_attack, neutral_get_send_to_attack(game, base, to_attack)+0)
         
-        if game.turn >= 130 and len(game.get_neutral_icebergs()) > 0 and get_our_pengs(game) > get_enemy_pengs(game):
-            to_attack = get_neutral_to_take(game, base)
-            if to_attack is not None:
-                if can_attack(game, base, to_attack, 0, 0):
-                    if neutral_get_send_to_attack(game, base, to_attack)+0 <= icebergs_balance[base]:
-                        smart_send(base, to_attack, neutral_get_send_to_attack(game, base, to_attack)+0)            
-
 
 
         enemy_dangered = enemy_get_dangered_icebergs(game)
@@ -874,26 +749,7 @@ def do_turn(game):
                     smart_send(icebergs[0], icebergs[1], get_send_to_attack(game, icebergs[0], icebergs[1]))
                     break
             
-        # if len(game.get_my_icebergs()) < 3 and len(game.get_neutral_icebergs()) != 0:
-        #     to_attack = neutral_nearest_iceberg(game, base)
-        #     if to_attack is not None:
-        #         if can_attack(game, base, to_attack):
-        #             if neutral_get_send_to_attack(game, base, to_attack) <= icebergs_balance[base]:
-        #                 smart_send(base, to_attack, neutral_get_send_to_attack(game, base, to_attack))
-
         ko(game,base)
+        best_target = sorted(game.get_enemy_icebergs(), key= lambda ice: ice.level, reverse= True)[0]
         if len(game.get_my_icebergs()) >= 4:
             transfer_to_closest_to_target(game, best_target)
-
-        # handle_risks(game)
-
-        for iceberg in game.get_my_icebergs():
-            if all_groups_to_dest(game,iceberg) == 0:
-                if iceberg.can_upgrade():
-                    if icebergs_state[iceberg]:
-                        iceberg.upgrade()
-                
-
-
-
-
