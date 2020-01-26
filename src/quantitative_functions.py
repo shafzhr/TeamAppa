@@ -93,11 +93,11 @@ class QuantitativeFunctions(object):
         returns the nearest neutral iceberg
         :type iceberg: Iceberg
         """
-        neutral_icebergs = self.__sort_by_distance_from_iceberg(iceberg, self.game.get_neutral_icebergs())
+        neutral_icebergs = self.sort_by_distance_from_iceberg(iceberg, self.game.get_neutral_icebergs())
         return neutral_icebergs[0] if neutral_icebergs else None
 
     
-    def __sort_by_distance_from_iceberg(self, iceberg, icebergs_list):
+    def sort_by_distance_from_iceberg(self, iceberg, icebergs_list):
         """
         returns sorted list of icebergs by their distances from iceberg
         """
