@@ -557,8 +557,11 @@ def risk_heuristic(game, our_ice):
     risk = 0
     for eny_ice in game.get_enemy_icebergs():
         risk += eny_ice.penguin_amount*1.0/(eny_ice.get_turns_till_arrival(our_ice)*1.0*eny_ice.get_turns_till_arrival(our_ice)*1.0)
+    for eny_group in game.get_enemy_penguin_groups():
+        if eny_group.destination == our_ice:
+            risk += eny_group.penguin_amount*1.0/(eny_group.turns_till_arrival*eny_group.turns_till_arrival*1.0)
     total = get_our_pengs(game)
-    risk = risk*1.0 * (1.0/(our_ice.level * 10.0))
+    # risk = risk*1.0 * (1.0/(our_ice.level * 10.0))
     # risk = risk*1.0 * ((total-icebergs_balance[our_ice]*1.0) / total*1.0) * (1.0/(our_ice.level * 10.0))
     # risk = risk*1.0 * (1.0 / icebergs_balance[our_ice]*1.0) * (1.0/(our_ice.level * 10.0))
     print "RISK_VAL:" + str(risk)
@@ -619,10 +622,10 @@ def max_tribute(game):
   #For each of the potential tributers, calculates the potential tribute. If it is positive, it changes the dictionary value, if not, it leaves it a 0.
   #Calculation: potential_tribute = our_penguins + our_level * distance - nearest_enemy_penguins
   for iceberg in tributers.keys():
-    #   our_sends_sum = sum( [ send.penguin_amount for send in get_our_sends_on_iceberg(game, iceberg) ] )
-      our_sends_sum = 0
+      our_sends_sum = sum( [ send.penguin_amount for send in get_our_sends_on_iceberg(game, iceberg) ] )
+    #   our_sends_sum = 0
       nearest_enemy = nearest_enemy_iceberg(game, iceberg).penguin_amount
-    #   nearest_enemy = 0
+      nearest_enemy = 0
       potential_tribute = icebergs_balance[iceberg] - nearest_enemy - our_sends_sum
       if potential_tribute > 0:
           tributers[iceberg] = potential_tribute
@@ -738,7 +741,7 @@ def do_turn(game):
         defend(game)
         risk_more_than_zero = list(filter(lambda x: risk_heuristic(game, x) != 0, game.get_my_icebergs()))  
         if risk_more_than_zero:
-            upgrades = sorted([ ice for ice in risk_more_than_zero ], key=lambda x: upgrade_val(game, x))
+            upgrades = sorted([ ice for ice in risk_more_than_zero ], key=lambda x: upgrade_val(game, x) * (1.0/risk_heuristic(game, x)))
             to_upgrade = upgrades[-1]
             if to_upgrade.can_upgrade() and not to_upgrade.already_acted and all_groups_to_dest_minus_distances(game, to_upgrade) > to_upgrade.upgrade_cost:
                 to_upgrade.upgrade()
