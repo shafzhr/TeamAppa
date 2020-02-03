@@ -22,21 +22,15 @@ class Manage(object):
         self.enemy_pengs_sum = sum([ eny_ice.penguin_amount for eny_ice in self.enemy_icebergs ]) + sum([ group.penguin_amount for group in self.enemy_penguins_groups ])
 
 
-
     def defend(self):
-        """
-        :type game: Game
-        """
-        global icebergs_balance
-        need_help = { iceberg: [] for iceberg in game.get_my_icebergs() if icebergs_balance[iceberg] <= 0 } # { need_help_iceberg: [possible_helpers] }
-        helps_icebergs = {iceberg: (0, []) for iceberg in game.get_my_icebergs() if iceberg not in need_help.keys()} # { helper_iceberg: (amount_of_need_help, [icebergs that need the helper]) }
+        need_help = { iceberg: [] for iceberg in self.my_icebergs if self.icebergs_balance[iceberg] <= 0 } # { need_help_iceberg: [possible_helpers] }
+        helps_icebergs = {iceberg: (0, []) for iceberg in self.my_icebergs if iceberg not in need_help.keys()} # { helper_iceberg: (amount_of_need_help, [icebergs that need the helper]) }
         for need_help_iceberg, possible_helps in need_help.iteritems():
-            nearest_group_distance = nearest_enemy_penguin_group_distance(game, need_help_iceberg)
-            for iceberg in game.get_my_icebergs():
-                # if penguin_amount_in_n_turns(game, need_help_iceberg, iceberg.get_turns_till_arrival(iceberg)) > 0 and icebergs_balance[iceberg] > 0:
-                if penguin_amount_in_n_turns(game, need_help_iceberg, iceberg.get_turns_till_arrival(iceberg)) > 0 and icebergs_balance[iceberg] > 0 \
-                and iceberg.get_turns_till_arrival(need_help_iceberg) <= get_turns_to_help(game, need_help_iceberg) :
-                    print("iceberg amount: {0}, balance: {1}".format(iceberg.penguin_amount, icebergs_balance[iceberg]))
+            for iceberg in self.my_icebergs:
+                # if self.penguin_amount_in_n_turns(need_help_iceberg, iceberg.get_turns_till_arrival(iceberg)) > 0 and self.icebergs_balance[iceberg] > 0:
+                if self.penguin_amount_in_n_turns(need_help_iceberg, iceberg.get_turns_till_arrival(iceberg)) > 0 and self.icebergs_balance[iceberg] > 0 \
+                and iceberg.get_turns_till_arrival(need_help_iceberg) <= self.get_turns_to_help(need_help_iceberg) :
+                    print("iceberg amount: {0}, balance: {1}".format(iceberg.penguin_amount, self.icebergs_balance[iceberg]))
                     possible_helps.append(iceberg)
                     if iceberg in helps_icebergs.keys():
                         helps_icebergs[iceberg] = (helps_icebergs[iceberg][0] + 1, helps_icebergs[iceberg][1])              
@@ -45,7 +39,7 @@ class Manage(object):
                     helps_icebergs[iceberg][1].append(need_help_iceberg)
         
         # for need_help_iceberg, possible_helps in need_help.iteritems():
-        #     need_help[need_help_iceberg] = sorted(possible_helps, key=lambda x: risk_heuristic(game, x))
+        #     need_help[need_help_iceberg] = sorted(possible_helps, key=lambda x: risk_heuristic(x))
         
         our_icebergs_prioritized = sorted(need_help.keys(), key= lambda x: x.level, reverse= True)
         defenders_devision = {iceberg: [] for iceberg in our_icebergs_prioritized}
@@ -68,8 +62,8 @@ class Manage(object):
             
             already_done = False
             for defender in defenders:
-                if self.icebergs_balance[defender] + self.icebergs_balance[iceberg] > 0 and penguin_amount_in_n_turns(game, iceberg, iceberg.get_turns_till_arrival(defender)) > 0:
-                    self.smart_send(defender, iceberg, self.our_abs(self.icebergs_balance[iceberg]) + 1)
+                if self.icebergs_balance[defender] + self.icebergs_balance[iceberg] > 0 and self.penguin_amount_in_n_turns(iceberg, iceberg.get_turns_till_arrival(defender)) > 0:
+                    self.smart_send(defender, iceberg, abs(self.icebergs_balance[iceberg]) + 1)
                     already_done = True
                     break
             if not already_done:
@@ -78,34 +72,30 @@ class Manage(object):
                 for defender in defenders:
                     defenders_needed += 1
                     sum += self.icebergs_balance[defender]
-                    if sum > our_abs(self.icebergs_balance[iceberg]):
+                    if sum > abs(self.icebergs_balance[iceberg]):
                         break
                 if sum > self.icebergs_balance[iceberg]:
-                    print "ACTUAL AMOUNT ",our_abs(self.icebergs_balance[iceberg]) + 1
-                    amount_per_defender = split_amount_for_send(defenders, our_abs(self.icebergs_balance[iceberg]) + 1, game)
+                    print "ACTUAL AMOUNT ", abs(self.icebergs_balance[iceberg]) + 1
+                    amount_per_defender = self.split_amount_for_send(defenders, abs(self.icebergs_balance[iceberg]) + 1)
                     if amount_per_defender is None:
                         return
                     for defender, amount in amount_per_defender.iteritems():
                         print "amount: ", amount
-                        self.smart_send(defender, iceberg, our_abs(amount))
+                        self.smart_send(defender, iceberg, abs(amount))
                     print "Defending!/?????????????????????????????????"
                     print "Defenders: " + str(len(defenders)) + "--------------------_"
                 else:
                     print "Gave up----------------------------------"
 
-
-    def risk_heuristic(self, game, our_ice):
+    def risk_heuristic(self, our_ice):
         """
-        :type game: Game
         :type our_ice: Iceberg
         """
         risk = 0
-        for eny_ice in game.get_enemy_icebergs():
-            risk += eny_ice.penguin_amount*1.0/(eny_ice.get_turns_till_arrival(our_ice)*1.0*eny_ice.get_turns_till_arrival(our_ice)*1.0)
-        total = self.our_pengs_sum(game)
-        # risk = risk*1.0 * (1.0/(our_ice.level * 10.0))
-        # risk = risk*1.0 * ((total-self.icebergs_balance[our_ice]*1.0) / total*1.0) * (1.0/(our_ice.level * 10.0))
-        return risk
+        for eny_ice in self.my_icebergs:
+            risk += eny_ice.penguin_amount*1.0/((eny_ice.get_turns_till_arrival(our_ice)*1.0)**2)
+        risk = risk*1.0 * (1.0/(our_ice.level ** 2))
+        print "RISK_VAL:" + str(risk)
 
     def smart_send(self, src, dest, p_amount):
         """
@@ -113,13 +103,64 @@ class Manage(object):
         :type src: Iceberg
         :type dest: Iceberg
         """
-        # if not icebergs_state[src]:
-        #     return
-        if src.already_acted:
+        if not self.icebergs_state[src]:
             return
         if p_amount > 0:
             src.send_penguins(dest, p_amount)
             self.icebergs_balance[src] -= p_amount
-            self.icebergs_state[src] = False #TODO:add
         else:
             print "Cant send negative!!!!!"
+
+    def penguin_amount_in_n_turns(self, iceberg, n):
+        p_per_turn = iceberg.penguins_per_turn
+        penguin_sum = iceberg.penguin_amount + p_per_turn * n
+        for group in self.enemy_penguins_groups:
+            if group.destination == iceberg and group.turns_till_arrival <= n:
+                penguin_sum -= group.penguin_amount
+        for group in self.my_penguin_groups:
+            if group.destination == iceberg and group.turns_till_arrival <= n:
+                penguin_sum += group.penguin_amount
+        return penguin_sum
+
+    def get_turns_to_help(self, iceberg):
+        sends = [ send.turns_till_arrival for send in self.enemy_penguins_groups if send.destination == iceberg ]
+        for i in range(max(sends)+1):
+            if self.penguin_amount_in_n_turns(iceberg, i) <= 0:
+                return i
+        return 0
+
+    def split_amount_for_send(self, icebergs, amount):
+        """
+        iceberg_to_send: target ICEBERG
+        icebergs: LIST of icebergs to send from
+        amount: int, total amount to be sent
+        
+        returns a dictionary. for each iceberg in icebergs returns how much to send.
+        """
+        sum_balance = 0
+        for sender in icebergs:
+            sum_balance += self.icebergs_balance[sender]
+        
+        amount_by_iceberg = {iceberg: (self.icebergs_balance[iceberg], self.icebergs_balance[iceberg] / sum_balance) for iceberg in icebergs}
+        to_send_by_iceberg = {iceberg: 0 for iceberg in icebergs}
+        # amount_by_iceberg: second value in tuple is ratio between amount and sendable penguin amount for iceberg. 
+        sum = 0 
+        to_be_sent = 0
+        for key, value in amount_by_iceberg.iteritems(): 
+            sum += value[0]
+        if sum < amount:
+            print "Split Failed => sum < amount"
+            return None
+        else:
+            for iceberg in icebergs:
+                to_send_by_iceberg[iceberg] = int(amount_by_iceberg[iceberg][1] * amount)
+                to_be_sent += to_send_by_iceberg[iceberg]
+            while not to_be_sent >= amount:
+                for iceberg in icebergs:
+                    if to_be_sent >= amount:
+                        break
+                    if to_send_by_iceberg[iceberg] + 1 <= amount_by_iceberg[iceberg] and self.icebergs_balance[iceberg] - to_send_by_iceberg[iceberg] > 0:
+                        to_send_by_iceberg[iceberg] += 1
+                        to_be_sent += 1
+        print to_send_by_iceberg          
+        return to_send_by_iceberg
