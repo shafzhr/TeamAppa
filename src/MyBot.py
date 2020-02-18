@@ -791,9 +791,9 @@ def do_turn(game):
     else:
 
         defend(game)
-        risk_more_than_zero = list(filter(lambda x: risk_heuristic(game, x) != 0, game.get_my_icebergs()))  
-        if risk_more_than_zero:
-            upgrades = sorted([ ice for ice in risk_more_than_zero ], key=lambda x: upgrade_val(game, x))
+        upgrade_more_than_zero = list(filter(lambda x: upgrade_val(game, x) != 0, game.get_my_icebergs()))  
+        if upgrade_more_than_zero:
+            upgrades = sorted([ ice for ice in upgrade_more_than_zero ], key=lambda x: upgrade_val(game, x))
             to_upgrade = upgrades[-1]
             if to_upgrade.can_upgrade() and not to_upgrade.already_acted and all_groups_to_dest_minus_distances(game, to_upgrade) > to_upgrade.upgrade_cost:
                 to_upgrade.upgrade()
@@ -804,7 +804,7 @@ def do_turn(game):
             enemy_target(game)
             
         our_conquered_icebergs = game.get_my_icebergs() + [ eny_ice for eny_ice in game.get_enemy_icebergs() if enemy_balance[eny_ice] < 0 ]
-        if len(our_conquered_icebergs) < len(game.get_enemy_icebergs()) and len(game.get_neutral_icebergs()) != 0:
+        if len(our_conquered_icebergs) <= len(game.get_enemy_icebergs()) and len(game.get_neutral_icebergs()) != 0:
             # to_attack = neutral_nearest_iceberg(game, base)
             to_attack = get_neutral_to_take(game, base)
             if to_attack is not None:
@@ -813,7 +813,7 @@ def do_turn(game):
                         smart_send(base, to_attack, neutral_get_send_to_attack(game, base, to_attack)+0)
         
         best_target = sorted(game.get_enemy_icebergs(), key= lambda ice: ice.level, reverse= True)[0]
-        if len(game.get_my_icebergs()) >= len(game.get_enemy_icebergs()):
+        if len(game.get_my_icebergs()) > len(game.get_enemy_icebergs()):
             transfer_to_closest_to_target(game, best_target)
         
         
