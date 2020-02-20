@@ -129,8 +129,13 @@ class Manage(object):
               - implement get_amount_to_conquer_neutral(iceberg)
               - implement can_attack_neutral(iceberg)
         """
-        our_conquered_icebergs = self.my_icebergs + [ eny_ice for eny_ice in self.enemy_icebergs if self.enemy_balance[eny_ice] < 0 ]
-        if self.game.get_neutral_icebergs() and len(our_conquered_icebergs) <= len(self.enemy_icebergs):
+        conquered_icebergs = [ eny_ice for eny_ice in self.enemy_icebergs if self.enemy_balance[eny_ice] < 0 ] # Our
+        enemy_conquered_icebergs = [ ice for ice in self.my_icebergs if self.icebergs_balance[ice] < 0 ] # Enemy's
+
+        our_ices = [ ice for ice in self.my_icebergs if self.icebergs_balance[ice] > 0 ] + conquered_icebergs
+        enemy_ices = [ eny_ice for eny_ice in self.enemy_icebergs if self.enemy_balance[eny_ice] > 0 ] + enemy_conquered_icebergs
+
+        if self.game.get_neutral_icebergs() and len(our_ices) <= len(enemy_ices):
             source_attacker, to_conquer = self.get_neutral_to_take()
             needed_amount = self.get_amount_to_conquer_neutral(to_conquer)
             if (    to_conquer is not None
@@ -146,16 +151,16 @@ class Manage(object):
         """
         risk = 0
         for eny_ice in self.my_icebergs():
-            risk += eny_ice.level*eny_ice.penguin_amount*1.0/((eny_ice.get_turns_till_arrival(our_ice)*1.0)**2)
+            risk += eny_ice.penguin_amount*1.0/((eny_ice.get_turns_till_arrival(our_ice)*1.0)**2)
         # for eny_group in game.get_enemy_penguin_groups():
         #     if eny_group.destination == our_ice:
         #         risk += eny_group.penguin_amount*1.0/((eny_group.turns_till_arrival*1.0)**2)
-        for our_group in self.my_penguin_groups:
-            if our_group.destination == our_ice:
-                risk -= 0.5*our_group.penguin_amount*1.0/((our_group.turns_till_arrival*1.0)**2)
-        total = self.our_pengs_sum
+        # for our_group in self.my_penguin_groups:
+        #     if our_group.destination == our_ice:
+        #         risk -= 0.5*our_group.penguin_amount*1.0/((our_group.turns_till_arrival*1.0)**2)
+        # total = self.our_pengs_sum
         risk = risk*1.0 * (1.0/(our_ice.level ** 2))
-        risk = risk*1.0 * ((total-self.icebergs_balance[our_ice]*1.0) / total*1.0) * (1.0/(our_ice.level * 10.0))
+        # risk = risk*1.0 * ((total-self.icebergs_balance[our_ice]*1.0) / total*1.0) * (1.0/(our_ice.level * 10.0))
         # risk = risk*1.0 * (1.0 / icebergs_balance[our_ice]*1.0) * (1.0/(our_ice.level * 10.0))
         print "RISK_VAL:" + str(risk)
         return risk

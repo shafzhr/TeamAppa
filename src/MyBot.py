@@ -559,18 +559,19 @@ def risk_heuristic(game, our_ice):
     global icebergs_balance
     risk = 0
     for eny_ice in game.get_enemy_icebergs():
-        risk += eny_ice.level*eny_ice.penguin_amount*1.0/((eny_ice.get_turns_till_arrival(our_ice)*1.0)**2)
+        risk += eny_ice.penguin_amount*1.0/((eny_ice.get_turns_till_arrival(our_ice)*1.0)**2)
     # for eny_group in game.get_enemy_penguin_groups():
     #     if eny_group.destination == our_ice:
     #         risk += eny_group.penguin_amount*1.0/((eny_group.turns_till_arrival*1.0)**2)
-    for our_group in game.get_my_penguin_groups():
-        if our_group.destination == our_ice:
-            risk -= 0.5*our_group.penguin_amount*1.0/((our_group.turns_till_arrival*1.0)**2)
+    # for our_group in game.get_my_penguin_groups():
+    #     if our_group.destination == our_ice:
+    #         risk -= 0.5*our_group.penguin_amount*1.0/((our_group.turns_till_arrival*1.0)**2)
     total = get_our_pengs(game)
     risk = risk*1.0 * (1.0/(our_ice.level ** 2))
-    risk = risk*1.0 * ((total-icebergs_balance[our_ice]*1.0) / total*1.0) * (1.0/(our_ice.level * 10.0))
+    risk2 = (our_ice.level*(total-icebergs_balance[our_ice]*1.0) / (total*1.0*our_ice.penguins_per_turn*10.0)) # * (1.0/(our_ice.level * 10.0))
     # risk = risk*1.0 * (1.0 / icebergs_balance[our_ice]*1.0) * (1.0/(our_ice.level * 10.0))
     print "RISK_VAL:" + str(risk)
+    print "         " + str(risk2)
     return risk
 
 
@@ -803,8 +804,16 @@ def do_turn(game):
         if len(game.get_neutral_icebergs()) != 0:
             enemy_target(game)
             
-        our_conquered_icebergs = game.get_my_icebergs() + [ eny_ice for eny_ice in game.get_enemy_icebergs() if enemy_balance[eny_ice] < 0 ]
-        if len(our_conquered_icebergs) <= len(game.get_enemy_icebergs()) and len(game.get_neutral_icebergs()) != 0:
+        
+
+        conquered_icebergs = [ eny_ice for eny_ice in game.get_enemy_icebergs() if enemy_balance[eny_ice] < 0 ] # Our
+        enemy_conquered_icebergs = [ ice for ice in game.get_my_icebergs() if icebergs_balance[ice] < 0 ] # Enemy's
+
+        our_ices = [ ice for ice in game.get_my_icebergs() if icebergs_balance[ice] > 0 ] + conquered_icebergs
+        enemy_ices = [ eny_ice for eny_ice in game.get_enemy_icebergs() if enemy_balance[eny_ice] > 0 ] + enemy_conquered_icebergs
+        
+
+        if len(our_ices) <= len(enemy_ices) and len(game.get_neutral_icebergs()) != 0:
             # to_attack = neutral_nearest_iceberg(game, base)
             to_attack = get_neutral_to_take(game, base)
             if to_attack is not None:
@@ -812,9 +821,9 @@ def do_turn(game):
                     if neutral_get_send_to_attack(game, base, to_attack)+0 <= icebergs_balance[base]:
                         smart_send(base, to_attack, neutral_get_send_to_attack(game, base, to_attack)+0)
         
-        best_target = sorted(game.get_enemy_icebergs(), key= lambda ice: ice.level, reverse= True)[0]
-        if len(game.get_my_icebergs()) > len(game.get_enemy_icebergs()):
-            transfer_to_closest_to_target(game, best_target)
+        best_target = sorted(game.get_enemy_icebergs(), key= lambda ice: ice.penguins_per_turn, reverse= True)[0]
+        # if len(game.get_my_icebergs()) > len(game.get_enemy_icebergs()):
+        transfer_to_closest_to_target(game, best_target)
         
         
 
