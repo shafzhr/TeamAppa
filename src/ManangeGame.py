@@ -115,7 +115,7 @@ class Manage(object):
     
     def handle_trap(self):
         """
-        TODO: - Implement enemy_target()
+        Handles the neutral icebergs trap
         """
         if self.game.get_neutral_icebergs():
             self.enemy_target()
@@ -210,3 +210,34 @@ class Manage(object):
         for i in range(max(sends)+1):
             if self.penguin_amount_in_n_turns(iceberg, i) <= 0:
                 return i
+
+
+    def enemy_target(self):
+        """
+        :type game: Game
+        """
+
+        for group in self.enemy_penguins_groups:
+            if group.destination in self.game.get_neutral_icebergs():
+                nearest_base = self.my_icebergs[0]
+                for base in self.my_icebergs:
+                    if base.get_turns_till_arrival(group.destination) < nearest_base.get_turns_till_arrival(
+                            group.destination):
+                        nearest_base = base
+				needed_peng_abs = our_abs(all_groups_to_dest(game, group.destination)-group.destination.penguin_amount)
+                needed_peng_abs += nearest_base.get_turns_till_arrival(group.destination) * group.destination.penguins_per_turn
+                if nearest_base.get_turns_till_arrival(group.destination) > group.turns_till_arrival:
+				
+                    if self.icebergs_balance[nearest_base] >= needed_peng_abs
+                        group.destination):
+                        if nearest_base.can_send_penguins(group.destination, needed_peng_abs):
+                            smart_send(nearest_base, group.destination, needed_peng_abs)
+                            print "DA-VI --> " + str(our_abs(all_groups_to_dest(game,
+                                                                                group.destination) - group.destination.penguin_amount) + nearest_base.get_turns_till_arrival(
+                                group.destination)) + " penguin_amount = " + str(nearest_base.penguin_amount)
+                            print "DA-VI2  --> " + str(our_abs(all_groups_to_dest(game,
+                                                                                  group.destination) - group.destination.penguin_amount)) + " " + str(
+                                nearest_base.get_turns_till_arrival(group.destination))
+                            print "DA-VI3 --> " + str(
+                                nearest_base.get_turns_till_arrival(group.destination)) + "     " + str(
+                                group.turns_till_arrival)
