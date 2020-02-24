@@ -103,3 +103,6 @@ class QuantitativeFunctions(object):
         """
         return sorted(icebergs_list, key=lambda x: x.get_turns_till_arrival(iceberg))
     
+    def penguin_produce(self):
+        return sum([ ice.penguins_per_turn for ice in 
+                    self.ices_by_player[self.players_index[self.player]] ])
