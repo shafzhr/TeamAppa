@@ -32,10 +32,10 @@ class Manage(object):
 
     def do_turn(self):
         self.defend()
-        self.handle_upgrading()
-        self.handle_trap()
         self.handle_conquering_neutrals()
+        self.handle_trap()
         self.handle_transfer()
+        self.handle_upgrading()
         self.conquer_enemy_icebergs()
         self.tie_breaker()
 

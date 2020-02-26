@@ -46,6 +46,7 @@ class QuantitativeFunctions(object):
                 else:
                     groups_per_distance[eny_group.turns_till_arrival] = eny_group.penguin_amount
         if not groups_per_distance.keys():
+            all_our_groups = sum([ ice.penguin_amount for ice in self.get_player_sends_on_iceberg(dest) ])
             return dest.penguin_amount
         
         min_balance = dest.penguin_amount
