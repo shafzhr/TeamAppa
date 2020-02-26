@@ -1,0 +1,4 @@
+/.vscode
+._*
+/src/venv
+/src/.idea
