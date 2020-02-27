@@ -41,6 +41,18 @@ class QuantitativeFunctions(object):
             return None
         return sorted( ices, key=lambda x: x.get_turns_till_arrival(iceberg) )[0]
 
+    def get_nearest_handled_iceberg(self, iceberg):
+        ices = self.ices_by_player[0] + self.ices_by_player[1]
+        nearest = ices[0]
+        nearest_dist = nearest.get_turns_till_arrival(iceberg)
+        for ice in ices:
+            dist = ice.get_turns_till_arrival(iceberg)
+            if dist < nearest_dist and ice != iceberg:
+                nearest = ice
+                nearest_dist = dist
+        return nearest
+
+
     def get_iceberg_balance(self, dest):
         """
         Returns the balance of a specific iceberg after all the penguin groups that were sent to it by his enemy have reached it
@@ -56,7 +68,7 @@ class QuantitativeFunctions(object):
                     groups_per_distance[eny_group.turns_till_arrival] = eny_group.penguin_amount
         if not groups_per_distance.keys():
             all_our_groups = sum([ ice.penguin_amount for ice in self.get_player_sends_on_iceberg(dest) ])
-            return dest.penguin_amount - all_our_groups
+            return dest.penguin_amount + all_our_groups
         
         min_balance = dest.penguin_amount
         balance = dest.penguin_amount

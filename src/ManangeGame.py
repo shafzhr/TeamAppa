@@ -142,9 +142,9 @@ class Manage(object):
                     attk_sum += send.penguin_amount
             if attk_sum <= neutral_ice.penguin_amount:
                 neutrals_not_attacked.append(neutral_ice)
-
-        neutral_lives = [iceberg.penguin_amount*1.0/iceberg.penguins_per_turn for iceberg in neutrals_not_attacked]
-        min_lives = list(filter(lambda ice: ice.penguin_amount*1.0/ice.penguins_per_turn == min(neutral_lives), neutrals_not_attacked))
+        neutrals_closest = list(filter( lambda ice: self.my_qc.get_nearest_handled_iceberg(ice).owner == self.game.get_myself(), neutrals_not_attacked ))
+        neutral_lives = [iceberg.penguin_amount*1.0/iceberg.penguins_per_turn for iceberg in neutrals_closest]
+        min_lives = list(filter(lambda ice: ice.penguin_amount*1.0/ice.penguins_per_turn == min(neutral_lives), neutrals_closest))
         print "----------------------------------------\nmin lives: " + str(min_lives) + "\n----------------------------"
         # fix:
         # neutrals = sorted(min_lives, key=lambda ice: self.average_distance_from_my_icebergs(ice))
