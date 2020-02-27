@@ -31,6 +31,15 @@ class QuantitativeFunctions(object):
         """
         return sorted( self.ices_by_player[self.__get_players_indexes()[1]], key=lambda x: x.get_turns_till_arrival(iceberg) )[0]
 
+    def get_nearest_player_iceberg(self, iceberg):
+        """
+        Returns the nearest iceberg of the opposite team to a given iceberg
+        :type iceberg: Iceberg
+        """
+        ices = [ ice for ice in self.ices_by_player[self.__get_players_indexes()[0]] if ice != iceberg ]
+        if not ices:
+            return None
+        return sorted( ices, key=lambda x: x.get_turns_till_arrival(iceberg) )[0]
 
     def get_iceberg_balance(self, dest):
         """
@@ -47,7 +56,7 @@ class QuantitativeFunctions(object):
                     groups_per_distance[eny_group.turns_till_arrival] = eny_group.penguin_amount
         if not groups_per_distance.keys():
             all_our_groups = sum([ ice.penguin_amount for ice in self.get_player_sends_on_iceberg(dest) ])
-            return dest.penguin_amount
+            return dest.penguin_amount - all_our_groups
         
         min_balance = dest.penguin_amount
         balance = dest.penguin_amount
