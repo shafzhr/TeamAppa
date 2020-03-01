@@ -15,7 +15,9 @@ class Manage(object):
         self.icebergs_balance = { iceberg: self.my_qc.get_iceberg_balance(iceberg) for iceberg in self.my_icebergs }
         self.our_pengs_sum = sum([ ice.penguin_amount for ice in self.my_icebergs ]) + sum([ group.penguin_amount for group in self.my_penguin_groups ])
         self.our_pengs_produce = self.my_qc.penguin_produce()
-
+        self.icebergs_useable = { ice:  self.icebergs_balance[ice] - 
+                                        sum([ g.penguin_amount for g in self.my_qc.get_player_sends_on_iceberg(ice) ]) 
+                                        for ice in self.my_icebergs }
 
 
         self.enemy_icebergs = game.get_enemy_icebergs()
@@ -33,13 +35,13 @@ class Manage(object):
 
     def do_turn(self):
         self.defend()
-        # self.help_neutral_attack()
+        self.help_neutral_attack()
         self.handle_conquering_neutrals()
         self.handle_trap()
         self.handle_transfer()
         self.handle_upgrading()
         self.conquer_enemy_icebergs()
-        self.tie_breaker()
+        # self.tie_breaker()
 
 
     def handle_upgrading(self):
@@ -99,7 +101,11 @@ class Manage(object):
 
 
     def get_amount_to_conquer_neutral(self, target):
-        return abs(self.neutral_iceberg_state(target)) + 1
+            state = self.neutral_iceberg_state(target)
+            if state[1]:
+                return abs(state[0]) + 1
+            else:
+                return state[0] + 1
 
     def help_neutral_attack(self):
             neutrals_being_attacked = list(set([group.destination for group in self.my_penguin_groups if group.destination in self.game.get_neutral_icebergs()]))
@@ -154,104 +160,73 @@ class Manage(object):
             return None
         return neutrals[0]
 
-    # def neutral_iceberg_state(self, iceberg, n=None):
-    #     my_groups = []
-    #     eny_groups = []
-    #     max_turn = 0
-    #     for group in self.my_penguin_groups:
-    #         if group.destination == iceberg:
-    #             my_groups.append(group)
-    #             if group.turns_till_arrival > max_turn:
-    #                 max_turn = group.turns_till_arrival
-    #     for group in self.enemy_penguins_groups:
-    #         if group.destination == iceberg:
-    #             eny_groups.append(group)
-    #             if group.turns_till_arrival > max_turn:
-    #                 max_turn = group.turns_till_arrival
-
-    #     eny_groups_to_neutral = {i: [group for group in my_groups if group.turns_till_arrival == i] for i in
-    #                              range(max_turn + 1)}
-    #     my_groups_to_neutral = {i: [group for group in eny_groups if group.turns_till_arrival == i] for i in
-    #                             range(max_turn + 1)}
-    #     neutral_pengs = iceberg.penguin_amount
-    #     still_neutral = True
-    #     peng_sum = 0
-    #     for turn in range(0, max_turn):
-    #         if n == turn:
-    #             break
-    #         current_sum = sum([ g.penguin_amount for g in my_groups_to_neutral[turn] ]) - sum([ g.penguin_amount for g in eny_groups_to_neutral[turn] ])
-    #         if still_neutral:
-    #             if current_sum > neutral_pengs:
-    #                 still_neutral = False
-    #                 peng_sum = current_sum - neutral_pengs
-    #             elif current_sum < -1 * neutral_pengs:
-    #                 still_neutral = False
-    #                 peng_sum = -(neutral_pengs + current_sum)
-    #             else:
-    #                 if current_sum > 0:
-    #                     neutral_pengs -= current_sum
-    #                 else:
-    #                     neutral_pengs += current_sum
-
-    #         else:
-    #             if peng_sum < 0:
-    #                 peng_sum -= iceberg.penguins_per_turn
-    #             elif peng_sum > 0:
-    #                 peng_sum += iceberg.penguins_per_turn
-
-    #             peng_sum += current_sum
-
-    #     if still_neutral:
-    #         return -neutral_pengs, still_neutral
-    #     return -peng_sum, still_neutral
-
     def neutral_iceberg_state(self, iceberg, n=None):
-        my_groups = []
-        eny_groups = []
-        max_turn = 0
-        for group in self.my_penguin_groups:
-            if group.destination == iceberg:
-                my_groups.append(group)
-                if group.turns_till_arrival > max_turn:
-                    max_turn = group.turns_till_arrival
-        for group in self.enemy_penguins_groups:
-            if group.destination == iceberg:
-                eny_groups.append(group)
-                if group.turns_till_arrival > max_turn:
-                    max_turn = group.turns_till_arrival
-
-        eny_groups_to_neutral = {i: [group for group in my_groups if group.turns_till_arrival == i] for i in
-                                 range(max_turn + 1)}
-        my_groups_to_neutral = {i: [group for group in eny_groups if group.turns_till_arrival == i] for i in
-                                range(max_turn + 1)}
-        neutral_pengs = iceberg.penguin_amount
-        still_neutral = True
-        peng_sum = 0
-        for turn in range(0, max_turn):
-            if n == turn:
-                break
-            current_sum = sum([ g.penguin_amount for g in my_groups_to_neutral[turn] ]) - sum([ g.penguin_amount for g in eny_groups_to_neutral[turn] ])
+            my_groups = []
+            eny_groups = []
+            max_turn = 0
+            for group in self.my_penguin_groups:
+                if group.destination == iceberg:
+                    my_groups.append(group)
+                    if group.turns_till_arrival > max_turn:
+                        max_turn = group.turns_till_arrival
+            for group in self.enemy_penguins_groups:
+                if group.destination == iceberg:
+                    eny_groups.append(group)
+                    if group.turns_till_arrival > max_turn:
+                        max_turn = group.turns_till_arrival
+        
+            my_groups_to_neutral = {i: [group for group in my_groups if group.turns_till_arrival == i] for i in
+                                    range(max_turn + 1)}
+            eny_groups_to_neutral = {i: [group for group in eny_groups if group.turns_till_arrival == i] for i in
+                                    range(max_turn + 1)}
+            neutral_pengs = iceberg.penguin_amount
+            still_neutral = True
+            peng_sum = 0
+            for turn in range(1, max_turn + 1):
+                if n == turn:
+                    break
+        
+                our_sum = sum([g.penguin_amount for g in my_groups_to_neutral[turn]])
+                enemy_sum = sum([g.penguin_amount for g in eny_groups_to_neutral[turn]])
+                current_sum = our_sum - enemy_sum
+                if still_neutral:
+                    # if current_sum > neutral_pengs:
+                    #     still_neutral = False
+                    #     peng_sum = current_sum - neutral_pengs
+                    # elif current_sum < -1 * neutral_pengs:
+                    #     still_neutral = False
+                    #     peng_sum = neutral_pengs - current_sum
+                    if our_sum + enemy_sum > neutral_pengs:
+                        still_neutral = False
+                        if our_sum < enemy_sum:
+                            if our_sum < neutral_pengs:
+                                neutral_pengs -= our_sum
+                            else:
+                                neutral_pengs = our_sum - neutral_pengs
+                            peng_sum = neutral_pengs - enemy_sum
+                        else:
+                            # enemy < us
+                            neutral_pengs -= enemy_sum
+                            peng_sum = our_sum + neutral_pengs
+                    else:
+                        neutral_pengs -= current_sum
+        
+                else:
+                    if peng_sum < 0:
+                        peng_sum -= iceberg.penguins_per_turn
+                    else:
+                        peng_sum += iceberg.penguins_per_turn
+        
+                    peng_sum += current_sum
+        
             if still_neutral:
-                if current_sum > neutral_pengs:
-                    still_neutral = False
-                    peng_sum = current_sum - neutral_pengs
-                elif current_sum < -1 * neutral_pengs:
-                    still_neutral = False
-                    peng_sum = neutral_pengs - current_sum
-                else:
-                    neutral_pengs -= current_sum
-
+                print "still neutral", neutral_pengs
             else:
-                if peng_sum < 0:
-                    peng_sum -= iceberg.penguins_per_turn
-                else:
-                    peng_sum += iceberg.penguins_per_turn
-
-                peng_sum += current_sum
-
-        if still_neutral:
-            return -neutral_pengs
-        return peng_sum
+                print "peng_sum: ", peng_sum
+        
+            if still_neutral:
+                return -neutral_pengs, still_neutral
+            return peng_sum, still_neutral
 
     def risk_heuristic(self, our_ice):
         """
