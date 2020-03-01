@@ -326,7 +326,7 @@ class Manage(object):
         """
         :type game: Game
         """
-        for group in self.my_penguin_groups:
+        for group in self.enemy_penguins_groups:
             if group.destination in self.game.get_neutral_icebergs():
                 nearest_base = self.my_icebergs[0]
                 for base in self.my_icebergs:
