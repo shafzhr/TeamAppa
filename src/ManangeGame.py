@@ -78,7 +78,7 @@ class Manage(object):
         our_ices = [ ice for ice in self.my_icebergs if self.icebergs_balance[ice] > 0 ] + conquered_icebergs
         enemy_ices = [ eny_ice for eny_ice in self.enemy_icebergs if self.enemy_balance[eny_ice] > 0 ] + enemy_conquered_icebergs
 
-        if self.game.get_neutral_icebergs() and len(self.game.get_all_icebergs())/2+1:
+        if self.game.get_neutral_icebergs() and len(self.my_icebergs) < len(self.game.get_all_icebergs())/2+1:
             # source_attacker, to_conquer = self.get_neutral_to_take(self.my_icebergs[0])
             to_conquer = self.get_neutral_to_take(self.my_icebergs[0])
             if to_conquer is None:
