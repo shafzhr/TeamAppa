@@ -1,6 +1,7 @@
 from penguin_game import * # pylint: disable=F0401
 import quantitative_functions as qc
 import itertools
+import math
 
 class Manage(object):
     def __init__(self, game):
@@ -34,6 +35,9 @@ class Manage(object):
 
 
     def do_turn(self):
+        if self.game.turn == 1 and self.my_icebergs[0].can_upgrade():
+            self.my_icebergs[0].upgrade()
+            
         self.defend()
         self.help_neutral_attack()
         self.handle_conquering_neutrals()
@@ -148,7 +152,16 @@ class Manage(object):
                     attk_sum += send.penguin_amount
             if attk_sum <= neutral_ice.penguin_amount:
                 neutrals_not_attacked.append(neutral_ice)
-        neutrals_closest = list(filter( lambda ice: self.my_qc.get_nearest_handled_iceberg(ice).owner == self.game.get_myself(), neutrals_not_attacked ))
+        
+        enemy_ices = list(self.enemy_icebergs)
+        for ice in self.game.get_neutral_icebergs():
+            state = self.neutral_iceberg_state(ice)
+            if not state[1] and state[0] < 0:
+                enemy_ices.append(ice)
+        
+        neutrals_closest = neutrals_not_attacked
+        if len(self.my_icebergs) < len(self.game.get_all_icebergs())/2:
+            neutrals_closest = list(filter( lambda ice: self.my_qc.get_nearest_handled_iceberg(ice, enemy_ices).owner == self.game.get_myself(), neutrals_not_attacked ))
         neutral_lives = [iceberg.penguin_amount*1.0/iceberg.penguins_per_turn for iceberg in neutrals_closest]
         min_lives = list(filter(lambda ice: ice.penguin_amount*1.0/ice.penguins_per_turn == min(neutral_lives), neutrals_closest))
         print "----------------------------------------\nmin lives: " + str(min_lives) + "\n----------------------------"
@@ -257,7 +270,7 @@ class Manage(object):
             return 0
         cost_eff = 1.0/iceberg.upgrade_cost*1.0 / iceberg.upgrade_value
         final_val = (iceberg.penguin_amount*1.0/iceberg.upgrade_cost)*(iceberg.penguins_per_turn + iceberg.upgrade_value)*cost_eff*1.0
-        # print ("UPGRADE VAL: " + str(final_val))
+        print ("UPGRADE VAL: " + str(final_val) + "    |    " + str(self.sigmoid(final_val)))
         return final_val
 
 
@@ -336,7 +349,7 @@ class Manage(object):
         nearest_to_target = self.get_iceberg_with_nearest_enemy()
         if (1 == 2 and not all([ice.level == 4 for ice in self.my_icebergs])) or \
                 self.our_pengs_produce < self.enemy_pengs_produce: 
-            nearest_to_target = self.get_iceberg_with_nearest_enemy()
+            nearest_to_target = self.get_iceberg_with_nearest_enemy()[0]
 
             if self.icebergs_balance[nearest_to_target] <= 0:
                 return
@@ -363,32 +376,46 @@ class Manage(object):
         iceberg_sendable = self.max_tribute()
         if iceberg_sendable == {}:
             return
-        helpers = [(ice, amount) for ice, amount in iceberg_sendable.iteritems() if
-                   ice.level <= ice.upgrade_level_limit and ice != nearest_to_target]
+        helpers = [(ice, self.split_transfer_amount_to_n_groups(amount, len(nearest_to_target))) 
+                    for ice, amount in iceberg_sendable.iteritems() 
+                    if ice.level <= ice.upgrade_level_limit and ice not in nearest_to_target]
         if len(helpers) < 2:
             return
-        helpers = sorted(helpers, key=lambda x: self.risk_heuristic(x[0]))
-        for iceberg, sendable in helpers:
-            if iceberg.can_send_penguins(nearest_to_target, sendable):
-                self.smart_send(iceberg, nearest_to_target, sendable)
+        # helpers = sorted(helpers, key=lambda x: self.risk_heuristic(x[0]))
+       
+        for iceberg, sends in helpers:
+            for to_send, amount in zip(nearest_to_target, sends):
+                if iceberg.can_send_penguins(to_send, amount):
+                    self.smart_send(iceberg, to_send, amount)
+
+            # if iceberg.can_send_penguins(nearest_to_target, sendable):
+            #     self.smart_send(iceberg, nearest_to_target, sendable)
 
     def get_iceberg_with_nearest_enemy(self):
         icebergs = self.my_icebergs
         nearest_ice = icebergs[0]
         nearest_range = sorted(self.enemy_icebergs, key=lambda x: x.get_turns_till_arrival(nearest_ice))[0].get_turns_till_arrival(nearest_ice)
+        to_transfer = [nearest_ice]
         for ice in icebergs:
             curr_range = sorted(self.enemy_icebergs, key=lambda x: x.get_turns_till_arrival(ice))[0].get_turns_till_arrival(ice)
             if curr_range < nearest_range:
                 nearest_range = curr_range
                 nearest_ice = ice
+                to_transfer = [ice]
             elif curr_range == nearest_range:
-                nearest_range_risk = self.risk_heuristic(nearest_ice)
-                curr_risk = self.risk_heuristic(ice)
-                if curr_risk > nearest_range_risk:
-                    nearest_range = curr_range
-                    nearest_ice = ice
-        return nearest_ice
+                to_transfer.append(ice)
+
+        return to_transfer
     
+
+    def split_transfer_amount_to_n_groups(self, amount, n):
+        amounts = [ amount/n for _ in range(n)]
+        amount = amount % n
+        for i in range(n):
+            if amount > 0:
+                amounts[i] +=1
+                amount -= 1
+        return amounts
     
     def max_tribute(self):
         """
@@ -676,3 +703,7 @@ class Manage(object):
                         to_be_sent += 1
         print to_send_by_iceberg
         return to_send_by_iceberg
+
+
+    def sigmoid(self, z):
+        return 1.0/(1.0+math.exp(-z))

@@ -41,8 +41,11 @@ class QuantitativeFunctions(object):
             return None
         return sorted( ices, key=lambda x: x.get_turns_till_arrival(iceberg) )[0]
 
-    def get_nearest_handled_iceberg(self, iceberg):
-        ices = self.ices_by_player[0] + self.ices_by_player[1]
+    def get_nearest_handled_iceberg(self, iceberg, custom_enemy_icebergs=[]):
+        enemy_ices = self.ices_by_player[1]
+        if custom_enemy_icebergs:
+            enemy_ices = list(custom_enemy_icebergs)
+        ices = self.ices_by_player[0] + enemy_ices
         nearest = ices[0]
         nearest_dist = nearest.get_turns_till_arrival(iceberg)
         for ice in ices:
